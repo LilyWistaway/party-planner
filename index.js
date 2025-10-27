@@ -16,7 +16,7 @@ async function fetchEvents() {
 
     const res = await fetch(`${API}/events`);
     if (!res.ok) {
-      throw new Error(`GET /events failed: ${res.status}`);
+      throw new Error("GET /events failed: " + res.status);
     }
 
     const json = await res.json();
@@ -27,21 +27,24 @@ async function fetchEvents() {
       state.events = [];
     }
   } catch (err) {
-    state.error = err && err.message ? err.message : String(err);
+    if (err && err.message) {
+      state.error = err.message;
+    } else {
+      state.error = String(err);
+    }
     state.events = [];
   } finally {
     state.loading = false;
   }
 }
 
-// ===== Data: fetch one by id =====
 async function fetchEventById(id) {
   try {
     state.error = null;
 
     const res = await fetch(`${API}/events/${id}`);
     if (!res.ok) {
-      throw new Error(`GET /events/${id} failed: ${res.status}`);
+      throw new Error("GET /events/" + id + " failed: " + res.status);
     }
 
     const json = await res.json();
@@ -52,66 +55,58 @@ async function fetchEventById(id) {
       state.selected = null;
     }
   } catch (err) {
-    state.error = err && err.message ? err.message : String(err);
+    if (err && err.message) {
+      state.error = err.message;
+    } else {
+      state.error = String(err);
+    }
     state.selected = null;
   }
 }
 
-// ===== Render =====
 function render() {
-  // wipe
   document.body.innerHTML = "";
 
-  // title
   const h1 = document.createElement("h1");
   h1.textContent = "Party Planner";
   document.body.appendChild(h1);
 
-  // status
   const status = document.createElement("p");
   if (state.error) {
-    status.textContent = `Error: ${state.error}`;
+    status.textContent = "Error: " + state.error;
   } else if (state.loading) {
     status.textContent = "Loading…";
   } else {
-    status.textContent = `Loaded ${state.events.length} events.`;
+    status.textContent = "Loaded " + state.events.length + " events.";
   }
   document.body.appendChild(status);
 
-  // if loading or error, stop here
   if (state.loading || state.error) {
     return;
   }
 
-  // layout
   const layout = document.createElement("div");
-  layout.style.display = "grid";
-  layout.style.gridTemplateColumns = "1fr 2fr";
-  layout.style.gap = "16px";
+  layout.id = "layout";
   document.body.appendChild(layout);
 
-  // LEFT: list
   const left = document.createElement("section");
   const leftTitle = document.createElement("h2");
   leftTitle.textContent = "Upcoming Parties";
   left.appendChild(leftTitle);
 
   const list = document.createElement("ul");
-
   for (let i = 0; i < state.events.length; i++) {
     const ev = state.events[i];
     const li = document.createElement("li");
     li.textContent = ev.name;
 
-    // simple selected styling (extension-friendly)
     if (state.selectedId === ev.id) {
-      li.style.fontStyle = "italic";
-      li.style.fontWeight = "600";
+      li.classList.add("selected");
     }
 
-    li.addEventListener("click", async () => {
+    li.addEventListener("click", async function () {
       if (state.selectedId === ev.id && state.selected) {
-        return; // already selected and loaded
+        return;
       }
       state.selectedId = ev.id;
       await fetchEventById(ev.id);
@@ -120,7 +115,6 @@ function render() {
 
     list.appendChild(li);
   }
-
   left.appendChild(list);
   layout.appendChild(left);
 
@@ -131,19 +125,36 @@ function render() {
 
   if (state.selected) {
     const d = state.selected;
-    const details = document.createElement("div");
 
-    const dateText = d.date ? new Date(d.date).toLocaleDateString() : "";
-    const locationText = d.location ? d.location : "";
-    const descriptionText = d.description ? d.description : "";
+    const h3 = document.createElement("h3");
+    h3.textContent = d.name + " #" + d.id;
 
-    details.innerHTML = `
-      <h3>${d.name} #${d.id}</h3>
-      <p>${dateText}</p>
-      <p><em>${locationText}</em></p>
-      <p>${descriptionText}</p>
-    `;
-    right.appendChild(details);
+    const pDate = document.createElement("p");
+    if (d.date) {
+      pDate.textContent = new Date(d.date).toLocaleDateString();
+    } else {
+      pDate.textContent = "";
+    }
+
+    const pLoc = document.createElement("p");
+    if (d.location) {
+      pLoc.textContent = d.location;
+      pLoc.style.fontStyle = "italic";
+    } else {
+      pLoc.textContent = "";
+    }
+
+    const pDesc = document.createElement("p");
+    if (d.description) {
+      pDesc.textContent = d.description;
+    } else {
+      pDesc.textContent = "";
+    }
+
+    right.appendChild(h3);
+    right.appendChild(pDate);
+    right.appendChild(pLoc);
+    right.appendChild(pDesc);
   } else {
     const hint = document.createElement("p");
     hint.textContent = "Select a party to see its details.";
